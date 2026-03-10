@@ -45,14 +45,24 @@ class GitHubClient:
                 if remaining < 10:
                     reset_at = int(response.headers.get("X-RateLimit-Reset", 0))
                     wait = max(reset_at - int(time.time()), 5)
+                    if wait > 300:  # Không chờ quá 5 phút
+                        print(f"[GitHub] Rate limit hết và thời gian chờ quá lâu ({wait}s). Bỏ qua request này.")
+                        return None
+                        
                     print(f"[GitHub] Rate limit gần hết, chờ {wait}s...")
-                    await asyncio.sleep(min(wait, 60))
+                    await asyncio.sleep(min(wait, 300))
 
                 if response.status_code == 200:
                     return response.json()
                 elif response.status_code == 403:
-                    print(f"[GitHub] Rate limited. Chờ 60s...")
-                    await asyncio.sleep(60)
+                    # github chặn abuse
+                    reset_at = int(response.headers.get("X-RateLimit-Reset", time.time() + 60))
+                    wait = max(reset_at - int(time.time()), 60)
+                    if wait > 300:
+                         print(f"[GitHub] Request forbidden (403) và phải chờ {wait}s. Bỏ qua.")
+                         return None
+                    print(f"[GitHub] Rate limited (403). Chờ {wait}s...")
+                    await asyncio.sleep(wait)
                 elif response.status_code == 404:
                     return None
                 else:

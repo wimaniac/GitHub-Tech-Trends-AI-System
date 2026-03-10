@@ -36,4 +36,4 @@
 4. **Trùng lặp tên Technologies (Synonyms)**:
    - "React.js", "ReactJS", "React" cần được nhóm về chung một chuẩn "React".
 5. **Vượt dung lượng SQLite**:
-   - Khi chạy lâu dài (vài tháng), SQLite phình to. Phải có module xóa log cũ, hoặc cảnh báo người dùng migrate sang PostgreSQL.
+   - Khi chạy lâu dài (vài tháng), SQLite phình to. Phải có module xóa log cũ,hoặc cảnh báo người dùng migrate sang PostgreSQL. 

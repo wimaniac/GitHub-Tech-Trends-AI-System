@@ -60,6 +60,9 @@ async def lifespan(app: FastAPI):
     yield
     # Shutdown
     print("[Server] Đang tắt server...")
+    if scheduler.running:
+        scheduler.shutdown(wait=False)
+        print("[Server] Đã tắt Scheduler.")
 
 
 app = FastAPI(
