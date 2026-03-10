@@ -31,6 +31,6 @@ Tài liệu này chia nhỏ dự án thành các ticket cụ thể để tiện 
 - [x] **UI-04**: Thêm tính năng Filter category và Search realtime.
 
 ## Phase 6: Tối ưu & Mở rộng
-- [ ] **OPT-01**: Viết cronjob / APScheduler để tự động chạy Data Collector sau mỗi 6 tiếng.
-- [ ] **OPT-02**: Add caching (in-memory hoặc Redis) cho GET API endpoint.
-- [ ] **OPT-03**: Viết Unit Tests coverage > 80%.
+- [x] **OPT-01**: Viết cronjob / APScheduler để tự động chạy Data Collector sau mỗi 6 tiếng.
+- [x] **OPT-02**: Add caching (in-memory hoặc Redis) cho GET API endpoint.
+- [x] **OPT-03**: Viết Unit Tests coverage > 80%.
