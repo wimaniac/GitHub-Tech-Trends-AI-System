@@ -20,15 +20,15 @@ Tài liệu này chia nhỏ dự án thành các ticket cụ thể để tiện 
 - [ ] **AI-05**: Viết logic tính Growth Rate so với Snapshot ngày hôm trước.
 
 ## Phase 4: API & Backend
-- [ ] **API-01**: Khởi tạo app FastAPI, setup CORS, Lifespan handler.
-- [ ] **API-02**: Thêm endpoint phục vụ Data (`/api/trends`, `/api/stats`).
-- [ ] **API-03**: Thêm endpoint kích hoạt Job (`/api/collect`, `/api/analyze`) dưới dạng Background Tasks.
+- [x] **API-01**: Khởi tạo app FastAPI, setup CORS, Lifespan handler.
+- [x] **API-02**: Thêm endpoint phục vụ Data (`/api/trends`, `/api/stats`).
+- [x] **API-03**: Thêm endpoint kích hoạt Job (`/api/collect`, `/api/analyze`) dưới dạng Background Tasks.
 
 ## Phase 5: Dashboard Frontend
-- [ ] **UI-01**: Cắt HTML/CSS Vanilla giao diện Dark Theme / Glassmorphism.
-- [ ] **UI-02**: Kết nối Fetch API lấy dữ liệu tĩnh hiển thị lên UI.
-- [ ] **UI-03**: Vẽ biểu đồ Trend History bằng `Chart.js`.
-- [ ] **UI-04**: Thêm tính năng Filter category và Search realtime.
+- [x] **UI-01**: Cắt HTML/CSS Vanilla giao diện Dark Theme / Glassmorphism.
+- [x] **UI-02**: Kết nối Fetch API lấy dữ liệu tĩnh hiển thị lên UI.
+- [x] **UI-03**: Vẽ biểu đồ Trend History bằng `Chart.js`.
+- [x] **UI-04**: Thêm tính năng Filter category và Search realtime.
 
 ## Phase 6: Tối ưu & Mở rộng
 - [ ] **OPT-01**: Viết cronjob / APScheduler để tự động chạy Data Collector sau mỗi 6 tiếng.

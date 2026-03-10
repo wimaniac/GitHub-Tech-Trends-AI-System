@@ -39,11 +39,12 @@ class GitHubClient:
                 await asyncio.sleep(self._delay)
                 response = await self.client.get(url, params=params)
 
+                import time
                 # Rate limit
                 remaining = int(response.headers.get("X-RateLimit-Remaining", 999))
                 if remaining < 10:
                     reset_at = int(response.headers.get("X-RateLimit-Reset", 0))
-                    wait = max(reset_at - int(datetime.utcnow().timestamp()), 5)
+                    wait = max(reset_at - int(time.time()), 5)
                     print(f"[GitHub] Rate limit gần hết, chờ {wait}s...")
                     await asyncio.sleep(min(wait, 60))
 

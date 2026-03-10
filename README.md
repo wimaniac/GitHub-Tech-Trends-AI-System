@@ -26,11 +26,11 @@ pip install -r requirements.txt
 python run.py
 ```
 
-Mở trình duyệt tại: **http://localhost:8000**
+Mở trình duyệt tại: **http://localhost:8001**
 
 ## Sử dụng
 
-1. Mở dashboard tại `http://localhost:8000`
+1. Mở dashboard tại `http://localhost:8001`
 2. Nhấn **"Thu thập"** để crawl dữ liệu từ GitHub
 3. Hệ thống tự động phân tích xu hướng
 4. Xem kết quả trên dashboard: trends, charts, predictions
@@ -48,7 +48,15 @@ Mở trình duyệt tại: **http://localhost:8000**
 | `POST /api/collect` | Kích hoạt thu thập |
 | `POST /api/analyze` | Kích hoạt phân tích |
 
-API Docs: `http://localhost:8000/docs`
+API Docs: `http://localhost:8001/docs`
+
+## Các mốc quan trọng (Milestones)
+
+- **Phase 1**: Setup project, Database models, API Server (`app.py`, `routes.py`)
+- **Phase 2**: Data collector - Tích hợp GitHub Search API & Trending Scraper
+- **Phase 3**: AI Analysis - Nhận diện technologies, Embeddings & HDBSCAN Clustering
+- **Phase 4**: Thực hiện Scoring & Time-series prediction cho các Trends
+- **Phase 5**: Hoàn thiện Dashboard giao diện Dark Mode hiển thị trực quan dữ liệu
 
 ## Công nghệ sử dụng
 

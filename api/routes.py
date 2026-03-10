@@ -126,12 +126,13 @@ async def api_get_stats():
 
 
 @router.post("/collect")
-async def api_trigger_collect(background_tasks: BackgroundTasks):
+async def api_trigger_collect(background_tasks: BackgroundTasks, query: Optional[str] = None):
     """Kích hoạt thu thập dữ liệu thủ công."""
-    background_tasks.add_task(_run_collection)
+    background_tasks.add_task(_run_collection, query)
+    msg_suffix = f" cho từ khóa '{query}'" if query else ""
     return {
         "status": "started",
-        "message": "Đang thu thập dữ liệu... Kiểm tra console để xem tiến trình."
+        "message": f"Đang thu thập dữ liệu{msg_suffix}... Kiểm tra console để xem tiến trình."
     }
 
 
@@ -145,10 +146,14 @@ async def api_trigger_analyze(background_tasks: BackgroundTasks):
     }
 
 
-async def _run_collection():
+async def _run_collection(query: Optional[str] = None):
     """Background task: thu thập dữ liệu."""
     try:
-        await collect_all()
+        if query:
+            # Thu thập theo từ khóa người dùng nhập (tìm kiếm repo có star > 10 cho có chất lượng)
+            await collect_search([f"{query} stars:>10"])
+        else:
+            await collect_all()
         await analyze_trends()
     except Exception as e:
         print(f"[API] Lỗi collection: {e}")

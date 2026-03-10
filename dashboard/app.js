@@ -492,10 +492,15 @@ function closeModal() {
 
 async function triggerCollect() {
     const btn = document.getElementById('btnCollect');
+    const searchInput = document.getElementById('searchInput');
+    const query = searchInput ? searchInput.value.trim() : '';
+    
     btn.classList.add('loading');
     btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:2px;"></div> Đang thu thập...';
 
-    const data = await apiFetch('/collect', { method: 'POST' });
+    // Thêm query parameter nếu có từ khóa
+    const url = query ? `/collect?query=${encodeURIComponent(query)}` : '/collect';
+    const data = await apiFetch(url, { method: 'POST' });
 
     showToast(data ? '✅ Đã bắt đầu thu thập dữ liệu từ GitHub!' : '❌ Lỗi khi thu thập!',
               data ? 'success' : 'error');
