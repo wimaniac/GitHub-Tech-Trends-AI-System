@@ -4,6 +4,7 @@ API Routes — Endpoints cho GitHub Tech Trends.
 import asyncio
 from fastapi import APIRouter, Query, BackgroundTasks
 from typing import Optional
+from fastapi_cache.decorator import cache
 
 from database.db import (
     get_trends, get_trend_by_name, get_trend_timeline,
@@ -17,11 +18,12 @@ router = APIRouter()
 
 
 @router.get("/trends")
+@cache(expire=1800)  # Cache 30 phút
 async def api_get_trends(
     limit: int = Query(30, ge=1, le=100),
     category: Optional[str] = None,
     status: Optional[str] = None,
-    sort_by: str = Query("trend_score", regex="^(trend_score|growth_rate|stars|repo_count|mention_count)$"),
+    sort_by: str = Query("trend_score", pattern="^(trend_score|growth_rate|stars|repo_count|mention_count)$"),
 ):
     """Lấy danh sách xu hướng công nghệ."""
     # Map sort field
@@ -47,6 +49,7 @@ async def api_get_trends(
 
 
 @router.get("/trends/detail/{tech_name}")
+@cache(expire=1800)
 async def api_get_trend_detail(tech_name: str):
     """Lấy chi tiết 1 xu hướng công nghệ."""
     trend = await get_trend_by_name(tech_name)
@@ -63,6 +66,7 @@ async def api_get_trend_detail(tech_name: str):
 
 
 @router.get("/trends/timeline")
+@cache(expire=1800)
 async def api_get_timeline(
     tech_name: Optional[str] = None,
     days: int = Query(30, ge=1, le=365),
@@ -76,6 +80,7 @@ async def api_get_timeline(
 
 
 @router.get("/categories")
+@cache(expire=3600)  # Cache 1 giờ
 async def api_get_categories():
     """Lấy danh sách categories."""
     categories = await get_categories()
@@ -83,6 +88,7 @@ async def api_get_categories():
 
 
 @router.get("/predictions")
+@cache(expire=3600)
 async def api_get_predictions(top_n: int = Query(15, ge=1, le=50)):
     """Lấy dự đoán xu hướng."""
     predictions = await predict_trends(top_n=top_n)
@@ -93,6 +99,7 @@ async def api_get_predictions(top_n: int = Query(15, ge=1, le=50)):
 
 
 @router.get("/repos")
+@cache(expire=900)  # Cache 15 phút
 async def api_get_repos(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
@@ -107,6 +114,7 @@ async def api_get_repos(
 
 
 @router.get("/stats")
+@cache(expire=900)
 async def api_get_stats():
     """Thống kê tổng quan."""
     repo_count = await get_repo_count()

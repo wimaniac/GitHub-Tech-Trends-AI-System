@@ -26,3 +26,10 @@ apscheduler==3.10.4
 
 # Utilities
 python-dotenv==1.0.1
+
+# Phase 6: Optimization & Testing
+fastapi-cache2[redis]==0.2.2
+pytest==8.1.1
+pytest-asyncio==0.23.6
+pytest-httpx==0.30.0
+pytest-cov==5.0.0

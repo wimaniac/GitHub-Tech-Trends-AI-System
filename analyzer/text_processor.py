@@ -115,7 +115,7 @@ def clean_text(text: str) -> str:
     text = re.sub(r'#+\s*', '', text)
     # Xóa code blocks
     text = re.sub(r'```[\s\S]*?```', ' ', text)
-    text = re.sub(r'`[^`]+`', ' ', text)
+    text = text.replace('`', ' ')
     # Xóa HTML tags
     text = re.sub(r'<[^>]+>', ' ', text)
     # Xóa ký tự đặc biệt

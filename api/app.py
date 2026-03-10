@@ -13,6 +13,29 @@ from config import BASE_DIR
 from database.db import init_db
 from api.routes import router
 
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.inmemory import InMemoryBackend
+# Import scheduler từ run.py (sẽ được tách biệt logic một cách an toàn)
+import sys
+# Để import đúng run.py, chúng ta cần tránh circular import bằng cách start trực tiếp trong app
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.triggers.interval import IntervalTrigger
+from config import COLLECT_INTERVAL_HOURS
+from collector.scheduler import collect_all
+from analyzer.trend_analyzer import analyze_trends
+
+scheduler = AsyncIOScheduler()
+
+async def scheduled_collect_task():
+    try:
+        print("[Scheduler] Bắt đầu job tự động thu thập...")
+        await collect_all()
+        print("[Scheduler] Bắt đầu phân tích AI...")
+        await analyze_trends()
+        print("[Scheduler] Hoàn tất job định kỳ.")
+    except Exception as e:
+        print(f"[Scheduler] Lỗi trong job định kỳ: {e}")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -20,6 +43,19 @@ async def lifespan(app: FastAPI):
     # Startup
     print("[Server] Khởi tạo database...")
     await init_db()
+    
+    print("[Server] Khởi tạo API Cache...")
+    FastAPICache.init(InMemoryBackend(), prefix="fastapi-cache")
+
+    print(f"[Server] Khởi động Background Scheduler (Chu kỳ: {COLLECT_INTERVAL_HOURS}h)...")
+    scheduler.add_job(
+        scheduled_collect_task,
+        trigger=IntervalTrigger(hours=COLLECT_INTERVAL_HOURS),
+        id="auto_collection_job",
+        replace_existing=True,
+    )
+    scheduler.start()
+    
     print("[Server] Server đã sẵn sàng! 🚀")
     yield
     # Shutdown

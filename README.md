@@ -57,10 +57,12 @@ API Docs: `http://localhost:8001/docs`
 - **Phase 3**: AI Analysis - Nhận diện technologies, Embeddings & HDBSCAN Clustering
 - **Phase 4**: Thực hiện Scoring & Time-series prediction cho các Trends
 - **Phase 5**: Hoàn thiện Dashboard giao diện Dark Mode hiển thị trực quan dữ liệu
+- **Phase 6**: Optimization & Extension - Tự động hóa crawl dữ liệu bằng `APScheduler`, Caching API server dùng `fastapi-cache2`, và viết Unit Tests coverage caoด้วย `pytest`.
 
 ## Công nghệ sử dụng
 
-- **Backend**: FastAPI, SQLAlchemy, SQLite
+- **Backend**: FastAPI, SQLAlchemy, SQLite, APScheduler, fastapi-cache2
 - **AI/ML**: sentence-transformers, scikit-learn, HDBSCAN
 - **Data**: httpx, BeautifulSoup4
 - **Frontend**: Vanilla JS, Chart.js
+- **Testing**: pytest, pytest-asyncio, pytest-httpx, pytest-cov

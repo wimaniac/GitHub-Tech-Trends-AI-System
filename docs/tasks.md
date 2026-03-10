@@ -3,21 +3,21 @@
 Tài liệu này chia nhỏ dự án thành các ticket cụ thể để tiện theo dõi và triển khai.
 
 ## Phase 1: Móng & Database Layer
-- [ ] **DB-01**: Setup cấu trúc dự án, môi trường (venv, requirements.txt).
-- [ ] **DB-02**: Định nghĩa SQLAlchemy Async Models (`Repository`, `TechTrend`, `TrendSnapshot`).
-- [ ] **DB-03**: Viết module `db.py` với các hàm CRUD cơ bản (upsert, get).
+- [x] **DB-01**: Setup cấu trúc dự án, môi trường (venv, requirements.txt).
+- [x] **DB-02**: Định nghĩa SQLAlchemy Async Models (`Repository`, `TechTrend`, `TrendSnapshot`).
+- [x] **DB-03**: Viết module `db.py` với các hàm CRUD cơ bản (upsert, get).
 
 ## Phase 2: Data Collector Layer
-- [ ] **COL-01**: Tích hợp `httpx` gọi GitHub API `/search/repositories` (handle Rate Limit).
-- [ ] **COL-02**: Viết cào dữ liệu (Scraping) trang GitHub Trending dùng BeautifulSoup.
-- [ ] **COL-03**: Viết `scheduler.py` gom 2 nguồn trên và ném vào Database.
+- [x] **COL-01**: Tích hợp `httpx` gọi GitHub API `/search/repositories` (handle Rate Limit).
+- [x] **COL-02**: Viết cào dữ liệu (Scraping) trang GitHub Trending dùng BeautifulSoup.
+- [x] **COL-03**: Viết `scheduler.py` gom 2 nguồn trên và ném vào Database.
 
 ## Phase 3: AI Analysis Engine
-- [ ] **AI-01**: Viết `text_processor.py` để làm sạch nội dung Readme/Description, trích xuất keywords.
-- [ ] **AI-02**: Tích hợp `sentence-transformers/all-MiniLM-L6-v2` tạo embeddings cho repo content.
-- [ ] **AI-03**: Áp dụng thuật toán HDBSCAN/KMeans phân cụm các repo có tính năng tương tự.
-- [ ] **AI-04**: Viết thuật toán tính điểm Trend Score (trọng số stars, forks, recent activity).
-- [ ] **AI-05**: Viết logic tính Growth Rate so với Snapshot ngày hôm trước.
+- [x] **AI-01**: Viết `text_processor.py` để làm sạch nội dung Readme/Description, trích xuất keywords.
+- [x] **AI-02**: Tích hợp `sentence-transformers/all-MiniLM-L6-v2` tạo embeddings cho repo content.
+- [x] **AI-03**: Áp dụng thuật toán HDBSCAN/KMeans phân cụm các repo có tính năng tương tự.
+- [x] **AI-04**: Viết thuật toán tính điểm Trend Score (trọng số stars, forks, recent activity).
+- [x] **AI-05**: Viết logic tính Growth Rate so với Snapshot ngày hôm trước.
 
 ## Phase 4: API & Backend
 - [x] **API-01**: Khởi tạo app FastAPI, setup CORS, Lifespan handler.
