@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Tech Trends AI — Phân tích xu hướng công nghệ</title>
+    <meta name="description" content="Hệ thống AI phân tích xu hướng công nghệ từ GitHub repositories">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-left">
+            <div class="logo">
+                <span class="logo-icon">🔍</span>
+                <h1>GitHub Tech Trends <span class="logo-ai">AI</span></h1>
+            </div>
+            <p class="subtitle">Phân tích xu hướng công nghệ thời gian thực</p>
+        </div>
+        <div class="header-right">
+            <div class="search-box">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                <input type="text" id="searchInput" placeholder="Tìm kiếm công nghệ..." autocomplete="off">
+            </div>
+            <button class="btn btn-collect" id="btnCollect" title="Thu thập dữ liệu từ GitHub">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+                Thu thập
+            </button>
+        </div>
+    </header>
+
+    <!-- Stats Bar -->
+    <section class="stats-bar">
+        <div class="stat-card">
+            <div class="stat-icon">📦</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statRepos">0</span>
+                <span class="stat-label">Repositories</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🔥</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statTrends">0</span>
+                <span class="stat-label">Xu hướng</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🚀</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statRising">0</span>
+                <span class="stat-label">Đang tăng</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">✨</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statEmerging">0</span>
+                <span class="stat-label">Mới nổi</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">📂</div>
+            <div class="stat-info">
+                <span class="stat-value" id="statCategories">0</span>
+                <span class="stat-label">Danh mục</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Category Filter -->
+        <div class="filter-bar">
+            <button class="filter-btn active" data-category="all">Tất cả</button>
+            <div id="categoryFilters"></div>
+            <div class="sort-select">
+                <label>Sắp xếp:</label>
+                <select id="sortSelect">
+                    <option value="trend_score">Điểm xu hướng</option>
+                    <option value="growth_rate">Tốc độ tăng</option>
+                    <option value="stars">Stars</option>
+                    <option value="repo_count">Số repo</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Top Trends Grid -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔥</span> Xu hướng công nghệ nổi bật
+            </h2>
+            <div class="trends-grid" id="trendsGrid">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Đang tải dữ liệu...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Charts Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📊</span> Biểu đồ phân tích
+            </h2>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>Top Công nghệ theo Trend Score</h3>
+                    <canvas id="trendScoreChart"></canvas>
+                </div>
+                <div class="chart-card">
+                    <h3>Phân bố theo danh mục</h3>
+                    <canvas id="categoryChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Predictions Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔮</span> Dự đoán xu hướng
+            </h2>
+            <div class="predictions-grid" id="predictionsGrid">
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Đang phân tích dự đoán...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Repositories Table -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">📁</span> Repositories đã thu thập
+            </h2>
+            <div class="table-container">
+                <table class="repo-table" id="repoTable">
+                    <thead>
+                        <tr>
+                            <th>Repository</th>
+                            <th>Ngôn ngữ</th>
+                            <th>⭐ Stars</th>
+                            <th>🍴 Forks</th>
+                            <th>Topics</th>
+                        </tr>
+                    </thead>
+                    <tbody id="repoTableBody">
+                        <tr><td colspan="5" class="loading-state"><div class="spinner"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detailModal">
+        <div class="modal-content">
+            <button class="modal-close" id="modalClose">✕</button>
+            <div id="modalBody">
+                <div class="loading-state"><div class="spinner"></div></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>GitHub Tech Trends AI System — Được tạo bởi AI 🤖</p>
+        <p class="footer-small">Dữ liệu từ GitHub • Phân tích bằng AI • Cập nhật tự động</p>
+    </footer>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
