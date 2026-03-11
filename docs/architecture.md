@@ -22,11 +22,11 @@ graph TB
     end
 
     subgraph Analyzer["🧠 AI Analysis Engine"]
-        TextProc["text_processor.py<br/>Clean Text, Extract Tech<br/>150+ Known Technologies"]
+        TextProc["text_processor.py<br/>Clean Text, Extract Tech<br/>Dictionary + Embeddings"]
         Embed["embeddings.py<br/>sentence-transformers<br/>all-MiniLM-L6-v2"]
-        Cluster["clustering.py<br/>HDBSCAN / KMeans<br/>Auto-K Selection"]
-        TrendAn["trend_analyzer.py<br/>Trend Score Pipeline<br/>Growth Rate Calculation"]
-        Predict["predictor.py<br/>Linear Regression<br/>Exponential Smoothing"]
+        Cluster["clustering.py<br/>Tech Ecosystems<br/>HDBSCAN / KMeans"]
+        TrendAn["trend_analyzer.py<br/>Composite Score Pipeline<br/>(Velocity, Traction)"]
+        Predict["predictor.py<br/>EMA Crossover<br/>Momentum Tracking"]
     end
 
     subgraph API["⚡ API Layer"]
@@ -167,27 +167,27 @@ graph TB
 ### 3. AI Analysis Engine (`analyzer/`)
 
 ```
-┌──────────────────────────────────────────────────────┐
 │ analyzer/trend_analyzer.py :: analyze_trends()        │
 │                                                       │
 │ Pipeline:                                            │
 │  1. get_all_repositories() ──────────────────────┐   │
 │  2. extract_technologies(text, topics) ◄─────────┤   │
-│     └── text_processor.py: 150+ known techs      │   │
+│     └── text_processor.py: Từ điển + Embedding   │   │
+│         discover_new_technologies()             │   │
 │  3. prepare_text_for_embedding() ────────────┐   │   │
 │  4. generate_batch(texts) ◄──────────────────┤   │   │
 │     └── embeddings.py: sentence-transformers │   │   │
-│  5. cluster_repositories(embeddings) ◄───────┘   │   │
-│     └── clustering.py: HDBSCAN → KMeans fallback │   │
-│  6. label_clusters(clusters, repo_techs)         │   │
+│  5. compute tech_embeddings (mean vectors)   │   │   │
+│  6. cluster_technologies() ◄─────────────────┘   │   │
+│     └── clustering.py: Tìm Tech Ecosystems       │   │
 │  7. _calculate_trend_score()                     │   │
-│     └── 30% popularity + 25% mentions            │   │
-│         + 25% recent activity + 20% repo count   │   │
+│     └── Velocity (35%), Traction (35%),          │   │
+│         Frequency (15%), Breadth (15%)           │   │
 │  8. upsert_trend() + add_snapshot() ─────────────┘   │
 │                                                       │
 │ analyzer/predictor.py :: predict_trends()             │
-│  ├── Linear Regression (≥3 data points)              │
-│  ├── Exponential Smoothing (1-2 data points)         │
+│  ├── EMA Crossover / Momentum (≥5 data points)       │
+│  ├── Exponential Smoothing (2-4 data points)         │
 │  └── Current Extrapolation (no timeline)             │
 └──────────────────────────────────────────────────────┘
 ```

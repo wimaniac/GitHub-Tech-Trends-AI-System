@@ -55,6 +55,50 @@ def cluster_repositories(embeddings: list[list[float]], labels: list[str] = None
     }
 
 
+def cluster_technologies(tech_embeddings: dict[str, list[float]]) -> dict:
+    """
+    Phân cụm các công nghệ (ecosystems) dựa trên embedding trung bình.
+    
+    Args:
+        tech_embeddings: Dict {tech_name: [embedding_vector]}
+    
+    Returns:
+        Dict {cluster_id: [list of tech_names]}
+    """
+    techs = list(tech_embeddings.keys())
+    embeddings = list(tech_embeddings.values())
+    
+    valid = [(i, emb) for i, emb in enumerate(embeddings) if emb is not None]
+    if len(valid) < 3:
+        return {"clusters": {}, "noise": techs}
+        
+    X = np.array([v[1] for v in valid])
+    indices = [v[0] for v in valid]
+    
+    # Dùng KMeans cho Tech (do số lượng ecosystem thường rõ ràng và ít điểm biểu diễn hơn repos)
+    cluster_labels = _kmeans_cluster(X, max_clusters=min(12, max(2, len(valid) // 3)))
+    
+    clusters = {}
+    noise = []
+    
+    for i, cl in enumerate(cluster_labels):
+        original_idx = indices[i]
+        tech_name = techs[original_idx]
+        
+        if cl == -1:
+            noise.append(tech_name)
+        else:
+            if cl not in clusters:
+                clusters[cl] = []
+            clusters[cl].append(tech_name)
+            
+    print(f"[Clustering] Đã nhóm {len(techs)} công nghệ thành {len(clusters)} hệ sinh thái (ecosystems).")
+    return {
+        "clusters": clusters,
+        "noise": noise
+    }
+
+
 def _hdbscan_cluster(X: np.ndarray) -> list[int]:
     """Clustering bằng HDBSCAN."""
     try:
@@ -128,4 +172,23 @@ def label_clusters(clusters: dict, repo_technologies: dict) -> dict:
             "size": len(indices),
         }
 
+    return cluster_info
+
+def label_technology_clusters(clusters: dict, tech_counter: Counter) -> dict:
+    """
+    Gán label cho ecosystem dựa trên công nghệ phổ biến nhất trong nhóm.
+    """
+    cluster_info = {}
+    for cl_id, techs in clusters.items():
+        # Lấy count của các tech trong cluster này
+        tech_stats = [(t, tech_counter.get(t, 0)) for t in techs]
+        tech_stats.sort(key=lambda x: x[1], reverse=True)
+        
+        label = tech_stats[0][0] if tech_stats else f"Ecosystem-{cl_id}"
+        
+        cluster_info[cl_id] = {
+            "label": label,
+            "top_techs": [{"name": t, "count": c} for t, c in tech_stats[:5]],
+            "size": len(techs)
+        }
     return cluster_info

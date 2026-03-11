@@ -33,9 +33,9 @@ Xây dựng hệ thống AI tự động thu thập, phân tích và trực quan
 ```
 Người dùng → Mở Dashboard (localhost:8000)
            → Xem Stats Bar (tổng repos, trends, rising, emerging)
-           → Duyệt Trends Grid (top công nghệ)
+           → Duyệt Trends Grid (top công nghệ ưu tiên hiển thị theo "Tốc độ tăng trưởng" - Growth Rate để thấy rõ sự Mới Nổi)
            → Lọc theo Category (AI/ML, Web Frontend, DevOps, ...)
-           → Sắp xếp theo Trend Score / Growth Rate / Stars
+           → Thay đổi Sắp xếp theo Trend Score / Growth Rate / Stars
            → Click vào trend → Xem Detail Modal (metrics, timeline chart)
 ```
 
@@ -43,7 +43,7 @@ Người dùng → Mở Dashboard (localhost:8000)
 ```
 Người dùng → Nhấn nút "Thu thập" trên Dashboard
            → Hệ thống gửi POST /api/collect
-           → Background: Scrape GitHub Trending + Search API
+           → Background: Scrape GitHub Trending (Random Languages) + Search API (Random Categories)
            → Background: NLP → Extract technologies → Embeddings → Clustering
            → Background: Tính Trend Score → Lưu DB
            → Dashboard auto-refresh sau 60s → Hiển thị dữ liệu mới
@@ -52,6 +52,7 @@ Người dùng → Nhấn nút "Thu thập" trên Dashboard
 ### Flow 3: Xem dự đoán
 ```
 Người dùng → Cuộn xuống phần "Dự đoán xu hướng"
+           → Xem danh sách công nghệ được sắp xếp theo "Kỳ vọng tăng trưởng" (Predicted Score - Current Score) cao nhất
            → Xem predicted score vs current score
            → Xem momentum indicator (🚀 Tăng mạnh, 📈 Đang tăng, ...)
            → Xem confidence bar
@@ -82,23 +83,22 @@ Developer → GET /api/trends?category=AI/ML&sort_by=growth_rate
 | **Scraping GitHub Trending** | HTML structure có thể thay đổi, cần fallback graceful |
 | **Embedding Model Size** | `all-MiniLM-L6-v2` ~80MB, tải lần đầu, chạy local (CPU) |
 | **SQLite Concurrency** | Single writer; đủ cho prototype, upgrade PostgreSQL nếu scale |
-| **No External AI API** | Tất cả ML chạy local, không phụ thuộc OpenAI/Gemini API |
+| **AI Integration** | Core ML (Embeddings, Clustering, NLP) chạy local 100%. Gemini API dùng làm AI Assistant tương tác với Context. |
 
 ### Hiệu năng
 | Metric | Target |
 |--------|--------|
 | Dashboard initial load | < 2 giây |
 | API response time | < 500ms cho GET endpoints |
-| Data collection cycle | < 10 phút cho 500 repos |
+| Data collection cycle | < 10 phút cho 500 repos (đã có Rate Limit/Backoff) |
 | Embedding batch (100 texts) | < 30 giây (CPU) |
 
-### Phạm vi MVP
-- ✅ Thu thập từ GitHub Trending + Search API
-- ✅ Phân tích NLP + Clustering + Trend scoring
-- ✅ Dashboard web đơn giản
-- ✅ REST API
+### Phạm vi MVP (Cập nhật Phase 10)
+- ✅ Thu thập an toàn từ GitHub Trending + Search API (Rate Limited)
+- ✅ Phân tích NLP (Từ điển + Embedding Similarity) + Tech Ecosystem Clustering
+- ✅ Dự đoán xu hướng với Exponential Momentum
+- ✅ Dashboard web tĩnh tích hợp Dark/Light theme & i18n
+- ✅ Tích hợp Gemini AI Chatbot hiểu Data DB
 - ❌ Chưa có: Authentication, user accounts
 - ❌ Chưa có: Real-time WebSocket updates
-- ❌ Chưa có: Export PDF/CSV
-- ❌ Chưa có: Scheduled auto-collection (phải trigger thủ công hoặc cài APScheduler background)
-- ❌ Chưa có: Multi-language NLP (hiện chỉ phân tích tiếng Anh)
+- ❌ Chưa có: Multi-language NLP cho source code (hiện ưu tiên tiếng Anh)

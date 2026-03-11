@@ -5,6 +5,9 @@ import re
 from collections import Counter
 from typing import Optional
 
+# Global dictionary for dynamically discovered technologies
+DYNAMIC_CATEGORY_MAP: dict[str, str] = {}
+
 
 # Danh sách công nghệ/framework/tool phổ biến để detect
 KNOWN_TECHNOLOGIES = {
@@ -52,6 +55,31 @@ KNOWN_TECHNOLOGIES = {
     "git", "vscode", "neovim", "tmux", "wasm", "webassembly",
     "grpc", "protobuf", "kafka", "rabbitmq", "nats",
     "bun", "deno", "turbo", "vite", "webpack", "esbuild",
+
+    # Security
+    "oauth", "jwt", "keycloak", "vault", "snyk", "trivy",
+    "sonarqube", "owasp", "cors", "ssl", "tls",
+    "auth0", "firebase-auth", "passkey", "webauthn",
+
+    # Blockchain / Web3
+    "ethereum", "solidity", "web3", "hardhat", "foundry",
+    "solana", "ipfs", "polygon", "metamask", "ethers",
+    "wagmi", "smart-contract", "defi", "nft",
+
+    # Data Engineering
+    "spark", "airflow", "dbt", "snowflake", "bigquery",
+    "databricks", "flink", "beam", "dagster", "prefect",
+    "delta-lake", "iceberg", "duckdb", "polars", "fivetran",
+
+    # Game Development
+    "unity", "unreal", "godot", "phaser", "bevy",
+    "three.js", "webgl", "opengl", "vulkan", "pygame",
+    "raylib", "love2d", "pixi", "babylonjs",
+
+    # IoT & Embedded
+    "arduino", "raspberry-pi", "esp32", "mqtt", "zigbee",
+    "home-assistant", "ros", "embedded-linux", "zephyr",
+    "platformio", "tasmota", "esphome",
 }
 
 # Mapping categories
@@ -98,6 +126,31 @@ CATEGORY_MAP = {
         "grpc", "protobuf", "kafka", "rabbitmq", "nats",
         "bun", "deno", "turbo", "vite", "webpack", "esbuild",
     },
+    "Security": {
+        "oauth", "jwt", "keycloak", "vault", "snyk", "trivy",
+        "sonarqube", "owasp", "cors", "ssl", "tls",
+        "auth0", "firebase-auth", "passkey", "webauthn",
+    },
+    "Blockchain": {
+        "ethereum", "solidity", "web3", "hardhat", "foundry",
+        "solana", "ipfs", "polygon", "metamask", "ethers",
+        "wagmi", "smart-contract", "defi", "nft",
+    },
+    "Data Engineering": {
+        "spark", "airflow", "dbt", "snowflake", "bigquery",
+        "databricks", "flink", "beam", "dagster", "prefect",
+        "delta-lake", "iceberg", "duckdb", "polars", "fivetran",
+    },
+    "Game Dev": {
+        "unity", "unreal", "godot", "phaser", "bevy",
+        "three.js", "webgl", "opengl", "vulkan", "pygame",
+        "raylib", "love2d", "pixi", "babylonjs",
+    },
+    "IoT": {
+        "arduino", "raspberry-pi", "esp32", "mqtt", "zigbee",
+        "home-assistant", "ros", "embedded-linux", "zephyr",
+        "platformio", "tasmota", "esphome",
+    },
 }
 
 
@@ -125,7 +178,7 @@ def clean_text(text: str) -> str:
     return text
 
 
-def extract_technologies(text: str, topics: list = None) -> list[str]:
+def extract_technologies(text: str, topics: Optional[list] = None) -> list[str]:
     """Trích xuất tên công nghệ từ text và topics."""
     found = set()
     text_lower = text.lower() if text else ""
@@ -157,7 +210,68 @@ def get_category(tech_name: str) -> str:
     for category, techs in CATEGORY_MAP.items():
         if tech_lower in techs:
             return category
+            
+    # Hỗ trợ dynamic category từ similarity discovery
+    if tech_lower in DYNAMIC_CATEGORY_MAP:
+        return DYNAMIC_CATEGORY_MAP[tech_lower]
+        
     return "Other"
+
+
+def discover_new_technologies(unknown_topics: list[str], emb_gen) -> dict[str, str]:
+    """
+    Sử dụng embedding cosine similarity để phát hiện công nghệ mới từ các topics lạ.
+    Trả về dict: {tech_name: category_name}
+    """
+    if not unknown_topics:
+        return {}
+        
+    import numpy as np
+    
+    # 1. Định nghĩa reference concept chung
+    tech_concept = "software framework programming language library database developer tool API SDK"
+    ref_embs = emb_gen.generate_batch([tech_concept])
+    tech_vec = ref_embs[0]
+    
+    if tech_vec is None: 
+        return {}
+    
+    # 2. Định nghĩa category vectors
+    categories = list(CATEGORY_MAP.keys())
+    cat_texts = [f"{c} software framework library tool language database" for c in categories]
+    cat_embs = emb_gen.generate_batch(cat_texts)
+    
+    # 3. Embed unknown topics
+    topic_embs = emb_gen.generate_batch(unknown_topics)
+    
+    discovered = {}
+    for topic, emb in zip(unknown_topics, topic_embs):
+        if emb is None: 
+            continue
+            
+        # Tính similarity với khái niệm "công nghệ"
+        sim_tech = float(np.dot(emb, tech_vec) / (np.linalg.norm(emb) * np.linalg.norm(tech_vec) + 1e-9))
+        
+        # Ngưỡng phát hiện: 0.58 là một con số tương đối an toàn với MiniLM
+        if sim_tech > 0.58:
+            # Tìm category gần nhất
+            best_cat = "Other"
+            best_sim = -1
+            
+            for cat_name, c_emb in zip(categories, cat_embs):
+                if c_emb is None: continue
+                sim_c = float(np.dot(emb, c_emb) / (np.linalg.norm(emb) * np.linalg.norm(c_emb) + 1e-9))
+                if sim_c > best_sim:
+                    best_sim = sim_c
+                    best_cat = cat_name
+                    
+            discovered[topic] = best_cat
+            print(f"[Text Processor] Đã phát hiện tech mới: '{topic}' -> {best_cat} (sim={sim_tech:.2f})")
+            
+    # Lưu vào dynamic map để get_category có thể tái sử dụng
+    DYNAMIC_CATEGORY_MAP.update(discovered)
+    
+    return discovered
 
 
 def extract_keywords(text: str, top_n: int = 20) -> list[tuple]:

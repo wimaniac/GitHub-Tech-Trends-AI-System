@@ -7,9 +7,9 @@ from datetime import datetime, timedelta
 from collections import Counter, defaultdict
 from typing import Optional
 
-from analyzer.text_processor import extract_technologies, get_category, prepare_text_for_embedding
+from analyzer.text_processor import extract_technologies, get_category, prepare_text_for_embedding, discover_new_technologies
 from analyzer.embeddings import get_embedding_generator
-from analyzer.clustering import cluster_repositories, label_clusters
+from analyzer.clustering import cluster_repositories, label_clusters, cluster_technologies, label_technology_clusters
 from database.db import (
     get_all_repositories, upsert_trend, add_snapshot,
     get_trends, get_trend_by_name
@@ -36,10 +36,12 @@ async def analyze_trends():
     print(f"[Analyzer] Phân tích {len(repos)} repositories...")
 
     # 2. Trích xuất công nghệ cho mỗi repo
-    tech_counter = Counter()       # đếm tổng mentions
-    tech_repos = defaultdict(list)  # tech -> list repos
-    tech_stars = defaultdict(list)
-    repo_techs = {}                # repo index -> techs
+    tech_counter: Counter = Counter()       # đếm tổng mentions
+    tech_repos: dict[str, list] = defaultdict(list)  # tech -> list repos
+    tech_stars: dict[str, list] = defaultdict(list)
+    repo_techs: dict[int, list] = {}                # repo index -> techs
+    
+    unknown_topics: set[str] = set()         # Để discovery công nghệ mới
 
     for i, repo in enumerate(repos):
         text = f"{repo.description} {repo.readme_content}"
@@ -51,29 +53,80 @@ async def analyze_trends():
             lang_lower = repo.language.lower()
             if lang_lower not in [t.lower() for t in techs]:
                 techs.append(lang_lower)
+                
+        # Thu thập các topics lạ để tìm kiếm công nghệ mới
+        for topic in topics:
+            t_lower = topic.lower().strip()
+            if t_lower and t_lower not in [t.lower() for t in techs]:
+                # Chỉ lấy topic alphabetic hoặc có dấu '-', tránh data rác/ID
+                import re
+                if re.match(r"^[a-z0-9\-]{2,30}$", t_lower):
+                    unknown_topics.add(t_lower)
 
         repo_techs[i] = techs
         for tech in techs:
             tech_counter[tech] += 1
             tech_repos[tech].append(repo)
             tech_stars[tech].append(repo.stars)
-
-    print(f"[Analyzer] Tìm thấy {len(tech_counter)} công nghệ unique")
-
-    # 3. Embeddings + Clustering (nếu đủ dữ liệu)
-    cluster_info = {}
-    if len(repos) >= 5:
-        try:
+            
+    # Init Embedding Generator cho Discovery và Clustering
+    emb_gen = None
+    try:
+        if len(repos) > 0:
             emb_gen = get_embedding_generator()
+    except Exception as e:
+        print(f"[Analyzer] Lỗi khởi tạo Embedding Model: {e}")
+
+    # 2.5 Dynamic Discovery (Cosine Similarity)
+    if emb_gen and unknown_topics:
+        discovered_map = discover_new_technologies(list(unknown_topics), emb_gen)
+        if discovered_map:
+            print(f"[Analyzer] Bổ sung thêm {len(discovered_map)} công nghệ mới vào pipeline.")
+            # Map ngược lại vào các repo chứa topic này
+            for i, repo in enumerate(repos):
+                topics = repo.topics if repo.topics else []
+                for topic in topics:
+                    t_lower = topic.lower().strip()
+                    if t_lower in discovered_map and t_lower not in repo_techs[i]:
+                        repo_techs[i].append(t_lower)
+                        tech_counter[t_lower] += 1
+                        tech_repos[t_lower].append(repo)
+                        tech_stars[t_lower].append(repo.stars)
+
+    print(f"[Analyzer] Tìm thấy tổng cộng {len(tech_counter)} công nghệ unique")
+
+    # 3. Embeddings + Clustering Technologies (hệ sinh thái)
+    cluster_info: dict = {}
+    tech_to_cluster: dict = {}
+    if len(repos) >= 5 and emb_gen:
+        try:
             texts = [prepare_text_for_embedding(r.__dict__) for r in repos]
             embeddings = emb_gen.generate_batch(texts)
-
-            result = cluster_repositories(embeddings)
-            if result.get("clusters"):
-                cluster_info = label_clusters(result["clusters"], repo_techs)
-                print(f"[Analyzer] {len(cluster_info)} clusters được phát hiện")
+            
+            tech_embeddings = {}
+            for tech, related_repos in tech_repos.items():
+                if len(related_repos) >= 2: # Yêu cầu có ít nhất 2 repo mới nhúng để tránh nhiễu
+                    valid_embs = []
+                    for r in related_repos:
+                        try:
+                            idx = repos.index(r)
+                            if embeddings[idx] is not None:
+                                valid_embs.append(embeddings[idx])
+                        except ValueError:
+                            pass
+                    if valid_embs:
+                        tech_embeddings[tech] = np.mean(valid_embs, axis=0).tolist()
+                        
+            if tech_embeddings:
+                result = cluster_technologies(tech_embeddings)
+                if result.get("clusters"):
+                    cluster_info = label_technology_clusters(result["clusters"], tech_counter)
+                    for cid, techs_in_cl in result["clusters"].items():
+                        for t in techs_in_cl:
+                            tech_to_cluster[t] = cid
+                    print(f"[Analyzer] {len(cluster_info)} Tech Ecosystems được phát hiện")
         except Exception as e:
-            print(f"[Analyzer] Lỗi clustering: {e}")
+            print(f"[Analyzer] Lỗi clustering technologies: {e}")
 
     # 4. Tính trend scores và lưu
     trends_saved = 0
@@ -109,12 +162,8 @@ async def analyze_trends():
         # Status
         status = _determine_status(growth_rate, trend_score, repo_count)
 
-        # Tìm cluster_id
-        cl_id = None
-        for cid, info in cluster_info.items():
-            if any(t["name"] == tech for t in info.get("top_techs", [])):
-                cl_id = cid
-                break
+        # Cấp cluster_id nếu thuộc group
+        cl_id = tech_to_cluster.get(tech)
 
         # Lưu trend
         category = get_category(tech)
@@ -156,21 +205,30 @@ def _calculate_trend_score(
     total_stars: int,
 ) -> float:
     """
-    Tính điểm xu hướng tổng hợp (0-100).
-    
-    Công thức:
-    - 30% từ popularity (log of total stars)
-    - 25% từ mention frequency
-    - 25% từ recent activity ratio
-    - 20% từ repo count
+    Tính điểm xu hướng tổng hợp (0-100) theo 4 chiều phân tích:
+    1. Velocity (35%): Tỷ lệ repo mới (đà tăng trưởng/momentum).
+    2. Traction (35%): Sức hút đo bằng tổng log stars.
+    3. Frequency (15%): Số lần được nhắc đến trong mô tả/README.
+    4. Breadth (15%): Độ phủ (số lượng repo sử dụng độc lập).
     """
-    # Normalize các metrics
-    pop_score = min(np.log1p(total_stars) / 15.0, 1.0) * 30
-    mention_score = min(mention_count / 50.0, 1.0) * 25
-    recent_score = recent_ratio * 25
-    repo_score = min(repo_count / 30.0, 1.0) * 20
-
-    return round(pop_score + mention_score + recent_score + repo_score, 2)
+    import math
+    
+    # 1. Velocity (Đà tăng trưởng của công nghệ)
+    # Nếu recent_ratio đạt ~66% (2/3 repo là mới) -> đạt điểm tối đa
+    velocity_score = min(recent_ratio * 1.5, 1.0) * 35.0
+    
+    # 2. Traction (Độ viral/hút stars) -> dùng base 10 hoặc tự nhiên
+    # Giả định ~160,000 sao (ln ~ 12) là tiệm cận đỉnh cho 1 trend
+    traction_score = min(math.log1p(total_stars) / 12.0, 1.0) * 35.0
+    
+    # 3. Frequency (Mật độ xuất hiện)
+    freq_score = min(mention_count / 40.0, 1.0) * 15.0
+    
+    # 4. Breadth (Độ phủ dự án)
+    breadth_score = min(repo_count / 20.0, 1.0) * 15.0
+    
+    final_score = float(velocity_score + traction_score + freq_score + breadth_score)
+    return round(final_score, 2)
 
 
 def _determine_status(growth_rate: float, trend_score: float, repo_count: int) -> str:

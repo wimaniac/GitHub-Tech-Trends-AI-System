@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 import httpx
 
-from config import GITHUB_TOKEN, GITHUB_API_BASE, REQUEST_DELAY, REPOS_PER_SEARCH
+from config import GITHUB_TOKEN, GITHUB_API_BASE, REQUEST_DELAY
 
 
 class GitHubClient:
@@ -33,45 +33,66 @@ class GitHubClient:
         await self.client.aclose()
 
     async def _request(self, url: str, params: dict = None) -> Optional[dict]:
-        """Gửi GET request với retry và rate limit handling."""
-        for attempt in range(3):
+        """Gửi GET request với retry, exponential backoff và rate limit handling."""
+        import random
+        import time
+        max_attempts = 4
+        
+        for attempt in range(max_attempts):
             try:
-                await asyncio.sleep(self._delay)
+                # Add jitter random sleep to mimic human and avoid API bursts
+                jitter = random.uniform(0.5, 2.2)
+                await asyncio.sleep(self._delay + jitter)
+                
                 response = await self.client.get(url, params=params)
 
-                import time
-                # Rate limit
+                # Kiểm tra hard rate limit header
                 remaining = int(response.headers.get("X-RateLimit-Remaining", 999))
-                if remaining < 10:
+                if remaining < 5:
                     reset_at = int(response.headers.get("X-RateLimit-Reset", 0))
-                    wait = max(reset_at - int(time.time()), 5)
-                    if wait > 300:  # Không chờ quá 5 phút
-                        print(f"[GitHub] Rate limit hết và thời gian chờ quá lâu ({wait}s). Bỏ qua request này.")
+                    wait_time = max(reset_at - int(time.time()), 2)
+                    
+                    if wait_time > 300:  # Không chờ quá 5 phút
+                        print(f"[GitHub] Rate limit cạn kiệt, chờ quá lâu ({wait_time}s). Bỏ qua request.")
                         return None
                         
-                    print(f"[GitHub] Rate limit gần hết, chờ {wait}s...")
-                    await asyncio.sleep(min(wait, 300))
+                    print(f"[GitHub] Rate limit gần hết, chờ {wait_time}s...")
+                    await asyncio.sleep(wait_time + 1) # Cộng thêm 1s buffer
 
                 if response.status_code == 200:
                     return response.json()
-                elif response.status_code == 403:
-                    # github chặn abuse
-                    reset_at = int(response.headers.get("X-RateLimit-Reset", time.time() + 60))
-                    wait = max(reset_at - int(time.time()), 60)
-                    if wait > 300:
-                         print(f"[GitHub] Request forbidden (403) và phải chờ {wait}s. Bỏ qua.")
+                elif response.status_code in (403, 429):
+                    # Abuse protection hoặc secondary rate limits
+                    retry_after = int(response.headers.get("Retry-After", 0))
+                    if retry_after > 0:
+                        wait_time = retry_after
+                    else:
+                        reset_at = int(response.headers.get("X-RateLimit-Reset", time.time() + 60))
+                        wait_time = max(reset_at - int(time.time()), 60)
+                        
+                    if wait_time > 300:
+                         print(f"[GitHub] Bị chặn do Secondary Limit (403/429), chờ {wait_time}s -> Bỏ qua.")
                          return None
-                    print(f"[GitHub] Rate limited (403). Chờ {wait}s...")
-                    await asyncio.sleep(wait)
+                         
+                    print(f"[GitHub] Code {response.status_code} (Limit). Chờ {wait_time}s rồi retry...")
+                    await asyncio.sleep(wait_time + random.uniform(1, 3))
                 elif response.status_code == 404:
                     return None
+                elif response.status_code >= 500:
+                    # Server errors -> exponential backoff
+                    backoff = (2 ** attempt) + random.uniform(0, 1)
+                    print(f"[GitHub] Lỗi server {response.status_code}. Thử lại sau {backoff:.1f}s (Lần {attempt+1}/{max_attempts})")
+                    await asyncio.sleep(backoff)
                 else:
                     print(f"[GitHub] Lỗi {response.status_code}: {response.text[:200]}")
-                    await asyncio.sleep(5 * (attempt + 1))
-            except httpx.HTTPError as e:
-                print(f"[GitHub] Lỗi kết nối (lần {attempt+1}): {e}")
-                await asyncio.sleep(5 * (attempt + 1))
+                    return None # Không retry với các lỗi 4xx khác (như 400, 422)
 
+            except httpx.HTTPError as e:
+                backoff = (2 ** attempt) + random.uniform(0.5, 2.0)
+                print(f"[GitHub] Lỗi HTTP kết nối (lần {attempt+1}/{max_attempts}): {e}. Thử lại sau {backoff:.1f}s")
+                await asyncio.sleep(backoff)
+
+        print(f"[GitHub] Gọi API thất bại sau {max_attempts} lần thử: {url}")
         return None
 
     async def search_repositories(
@@ -83,7 +104,7 @@ class GitHubClient:
         page: int = 1,
     ) -> list[dict]:
         """Tìm kiếm repositories qua GitHub Search API."""
-        per_page = per_page or REPOS_PER_SEARCH
+        per_page = per_page or 100
         data = await self._request(
             f"{GITHUB_API_BASE}/search/repositories",
             params={

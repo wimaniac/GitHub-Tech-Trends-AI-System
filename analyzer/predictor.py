@@ -29,8 +29,11 @@ async def predict_trends(top_n: int = 20) -> list[dict]:
         if prediction:
             predictions.append(prediction)
 
-    # Sắp xếp theo predicted score
-    predictions.sort(key=lambda x: x["predicted_score"], reverse=True)
+    # Sắp xếp theo mức độ tăng trưởng kì vọng (predicted_score - current_score)
+    # Tức là ưu tiên "Dự đoán sẽ tăng mạnh nhất" thay vì "Điểm to nhất"
+    predictions.sort(key=lambda x: x["predicted_score"] - x["current_score"], reverse=True)
+    
+    # Lọc bỏ những cái dự đoán không tăng (hoặc giảm) nếu muốn, nhưng ở đây cứ lấy top N tăng mạnh nhất
     result = predictions[:top_n]
 
     print(f"[Predictor] Đã tạo {len(result)} predictions")
@@ -42,32 +45,34 @@ async def _predict_single(trend) -> Optional[dict]:
     try:
         # Lấy timeline data
         timeline = await get_trend_timeline(tech_name=trend.technology_name)
+        scores = [t["score"] for t in timeline]
 
-        if len(timeline) >= 3:
-            # Có đủ dữ liệu time-series => dùng linear regression
-            scores = [t["score"] for t in timeline]
-            predicted_score = _linear_forecast(scores, steps=1)
+        if len(scores) >= 5:
+            # Đủ dữ liệu => dùng mô hình Momentum/Exponential Growth (EMA crossover)
+            predicted_score = _momentum_forecast(scores)
             confidence = _calculate_confidence(scores)
-            method = "linear_regression"
-        elif len(timeline) >= 1:
-            # Ít dữ liệu => dùng exponential smoothing
-            scores = [t["score"] for t in timeline]
+            method = "exponential_momentum"
+        elif len(scores) >= 2:
+            # Ít dữ liệu => dùng exponential smoothing cơ bản
             predicted_score = _exponential_smooth(scores)
-            confidence = 0.4  # confidence thấp vì ít data
+            confidence = 0.4 + (min(len(scores), 5) * 0.05)
             method = "exponential_smoothing"
         else:
-            # Không có timeline => dùng trend_score hiện tại
-            predicted_score = trend.trend_score * 1.05  # assume 5% growth
+            # Không đủ timeline => dùng trend_score hiện tại và cộng biên độ
+            base_score = scores[-1] if scores else trend.trend_score
+            predicted_score = base_score * 1.05
             confidence = 0.3
-            method = "current_extrapolation"
+            method = "extrapolation"
 
-        # Xác định momentum
+        # Xác định momentum string hiển thị
         momentum = _calculate_momentum(trend)
 
-        # Predicted status
-        if predicted_score > trend.trend_score * 1.2:
+        # Predicted status (đối chiếu với base lúc này)
+        base_for_status = scores[-1] if scores else trend.trend_score
+        
+        if predicted_score > base_for_status * 1.15:
             predicted_status = "rising"
-        elif predicted_score > trend.trend_score * 0.95:
+        elif predicted_score > base_for_status * 0.95:
             predicted_status = "stable"
         else:
             predicted_status = "declining"
@@ -90,19 +95,50 @@ async def _predict_single(trend) -> Optional[dict]:
         return None
 
 
-def _linear_forecast(values: list[float], steps: int = 1) -> float:
-    """Dự đoán bằng linear regression đơn giản."""
-    if len(values) < 2:
-        return values[-1] if values else 0
+def _ema(values: list[float], span: int) -> list[float]:
+    """Tính toán Exponential Moving Average."""
+    if not values:
+        return []
+        
+    alpha = 2 / (span + 1)
+    ema_vals = [values[0]]
+    for val in values[1:]:
+        ema_vals.append(alpha * val + (1 - alpha) * ema_vals[-1])
+    return ema_vals
 
-    x = np.arange(len(values))
-    y = np.array(values)
 
-    # Fit linear regression
-    coeffs = np.polyfit(x, y, 1)
-    # Predict next step
-    next_x = len(values) + steps - 1
-    return float(np.polyval(coeffs, next_x))
+def _momentum_forecast(scores: list[float]) -> float:
+    """
+    Dự báo bằng mô hình Momentum (dựa trên EMA Crossover).
+    Cực nhạy với các trend bùng nổ (exponential growth).
+    """
+    short_span = max(2, min(3, len(scores) // 2))
+    long_span = max(3, min(5, len(scores)))
+    
+    ema_short = _ema(scores, short_span)
+    ema_long = _ema(scores, long_span)
+    
+    if not ema_short or not ema_long:
+        return scores[-1] if scores else 0.0
+        
+    # Velocity (gia tốc) = khoảng cách phân kỳ giữa EMA ngắn và dài
+    current_velocity = ema_short[-1] - ema_long[-1]
+    
+    # Base prediction = EMA ngắn hạn gần nhất (phản ánh xu hướng gần đây nhất)
+    base = ema_short[-1]
+    
+    # Kiểm tra exponential momentum
+    if current_velocity > 0:
+        # Nếu đang trong uptrend (đường ngắn cắt lên đường dài)
+        trend_ratio = ema_short[-1] / (ema_long[-1] + 1e-5)
+        # Hệ số gia tốc (compound factor): giới hạn [1.0 -> 1.5] để không over-predict
+        compound_factor = min(max(trend_ratio, 1.0), 1.5)
+        predicted = base + (current_velocity * compound_factor)
+    else:
+        # Đang downtrend hoặc chững lại
+        predicted = base + current_velocity
+        
+    return float(max(0, predicted))
 
 
 def _exponential_smooth(values: list[float], alpha: float = 0.3) -> float:

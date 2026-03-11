@@ -1,15 +1,19 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GitHub Tech Trends AI — Phân tích xu hướng công nghệ</title>
     <meta name="description" content="Hệ thống AI phân tích xu hướng công nghệ từ GitHub repositories">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="stylesheet" href="/static/index.css">
 </head>
+
 <body>
     <!-- Header -->
     <header class="header">
@@ -18,16 +22,33 @@
                 <span class="logo-icon">🔍</span>
                 <h1>GitHub Tech Trends <span class="logo-ai">AI</span></h1>
             </div>
-            <p class="subtitle">Phân tích xu hướng công nghệ thời gian thực</p>
+            <p class="subtitle" data-i18n="subtitle">Phân tích xu hướng công nghệ thời gian thực</p>
         </div>
         <div class="header-right">
             <div class="search-box">
-                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <input type="text" id="searchInput" placeholder="Tìm kiếm công nghệ..." autocomplete="off">
+                <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="m21 21-4.3-4.3" />
+                </svg>
+                <input type="text" id="searchInput" data-i18n-placeholder="search_placeholder"
+                    placeholder="Tìm kiếm công nghệ..." autocomplete="off">
+                <div class="search-suggestions" id="searchSuggestions"></div>
             </div>
             <button class="btn btn-collect" id="btnCollect" title="Thu thập dữ liệu từ GitHub">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
-                Thu thập
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                    <path d="M3 3v5h5" />
+                    <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+                    <path d="M16 16h5v5" />
+                </svg>
+                <span data-i18n="collect">Thu thập</span>
+            </button>
+            <button class="btn btn-icon" id="btnLang" title="Switch language">
+                <span id="langLabel">🇻🇳 VI</span>
+            </button>
+            <button class="btn btn-icon" id="btnTheme" title="Toggle theme">
+                <span id="themeIcon">🌙</span>
             </button>
         </div>
     </header>
@@ -45,45 +66,45 @@
             <div class="stat-icon">🔥</div>
             <div class="stat-info">
                 <span class="stat-value" id="statTrends">0</span>
-                <span class="stat-label">Xu hướng</span>
+                <span class="stat-label" data-i18n="trends">Xu hướng</span>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">🚀</div>
             <div class="stat-info">
                 <span class="stat-value" id="statRising">0</span>
-                <span class="stat-label">Đang tăng</span>
+                <span class="stat-label" data-i18n="rising">Đang tăng</span>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">✨</div>
             <div class="stat-info">
                 <span class="stat-value" id="statEmerging">0</span>
-                <span class="stat-label">Mới nổi</span>
+                <span class="stat-label" data-i18n="emerging">Mới nổi</span>
             </div>
         </div>
         <div class="stat-card">
             <div class="stat-icon">📂</div>
             <div class="stat-info">
                 <span class="stat-value" id="statCategories">0</span>
-                <span class="stat-label">Danh mục</span>
+                <span class="stat-label" data-i18n="categories">Danh mục</span>
             </div>
         </div>
     </section>
 
     <!-- Main Content -->
     <main class="main-content">
-        <!-- Category Filter -->
+        <!-- Filter & Sort Bar -->
         <div class="filter-bar">
-            <button class="filter-btn active" data-category="all">Tất cả</button>
+            <button class="filter-btn active" data-category="all" data-i18n="all">Tất cả</button>
             <div id="categoryFilters"></div>
             <div class="sort-select">
-                <label>Sắp xếp:</label>
+                <label data-i18n="sort_by">Sắp xếp:</label>
                 <select id="sortSelect">
-                    <option value="trend_score">Điểm xu hướng</option>
-                    <option value="growth_rate">Tốc độ tăng</option>
+                    <option value="trend_score" data-i18n="trend_score">Điểm xu hướng</option>
+                    <option value="growth_rate" data-i18n="growth_rate" selected>Tốc độ tăng</option>
                     <option value="stars">Stars</option>
-                    <option value="repo_count">Số repo</option>
+                    <option value="repo_count" data-i18n="repo_count">Số repo</option>
                 </select>
             </div>
         </div>
@@ -91,30 +112,31 @@
         <!-- Top Trends Grid -->
         <section class="section">
             <h2 class="section-title">
-                <span class="section-icon">🔥</span> Xu hướng công nghệ nổi bật
+                <span class="section-icon">🔥</span> <span data-i18n="trending_tech">Xu hướng công nghệ nổi bật</span>
             </h2>
             <div class="trends-grid" id="trendsGrid">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Đang tải dữ liệu...</p>
+                    <p data-i18n="loading">Đang tải dữ liệu...</p>
                 </div>
             </div>
+            <div class="pagination" id="trendsPagination"></div>
         </section>
 
         <!-- Charts Section -->
         <section class="section">
             <h2 class="section-title">
-                <span class="section-icon">📊</span> Biểu đồ phân tích
+                <span class="section-icon">📊</span> <span data-i18n="analytics_charts">Biểu đồ phân tích</span>
             </h2>
             <div class="charts-grid">
                 <div class="chart-card">
-                    <h3>Top Công nghệ theo Trend Score</h3>
+                    <h3 data-i18n="top_tech_score">Top Công nghệ theo Trend Score</h3>
                     <div style="position: relative; height: 320px; width: 100%;">
                         <canvas id="trendScoreChart"></canvas>
                     </div>
                 </div>
                 <div class="chart-card">
-                    <h3>Phân bố theo danh mục</h3>
+                    <h3 data-i18n="category_distribution">Phân bố theo danh mục</h3>
                     <div style="position: relative; height: 320px; width: 100%;">
                         <canvas id="categoryChart"></canvas>
                     </div>
@@ -125,12 +147,12 @@
         <!-- Predictions Section -->
         <section class="section">
             <h2 class="section-title">
-                <span class="section-icon">🔮</span> Dự đoán xu hướng
+                <span class="section-icon">🔮</span> <span data-i18n="predictions">Dự đoán xu hướng</span>
             </h2>
             <div class="predictions-grid" id="predictionsGrid">
                 <div class="loading-state">
                     <div class="spinner"></div>
-                    <p>Đang phân tích dự đoán...</p>
+                    <p data-i18n="analyzing_predictions">Đang phân tích dự đoán...</p>
                 </div>
             </div>
         </section>
@@ -138,24 +160,29 @@
         <!-- Repositories Table -->
         <section class="section">
             <h2 class="section-title">
-                <span class="section-icon">📁</span> Repositories đã thu thập
+                <span class="section-icon">📁</span> <span data-i18n="collected_repos">Repositories đã thu thập</span>
             </h2>
             <div class="table-container">
                 <table class="repo-table" id="repoTable">
                     <thead>
                         <tr>
                             <th>Repository</th>
-                            <th>Ngôn ngữ</th>
+                            <th data-i18n="language">Ngôn ngữ</th>
                             <th>⭐ Stars</th>
                             <th>🍴 Forks</th>
                             <th>Topics</th>
                         </tr>
                     </thead>
                     <tbody id="repoTableBody">
-                        <tr><td colspan="5" class="loading-state"><div class="spinner"></div></td></tr>
+                        <tr>
+                            <td colspan="5" class="loading-state">
+                                <div class="spinner"></div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
+            <div class="pagination" id="reposPagination"></div>
         </section>
     </main>
 
@@ -164,17 +191,66 @@
         <div class="modal-content">
             <button class="modal-close" id="modalClose">✕</button>
             <div id="modalBody">
-                <div class="loading-state"><div class="spinner"></div></div>
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Chatbot FAB & Panel -->
+    <button class="chatbot-fab" id="chatbotFab" title="AI Assistant">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+        <span class="chatbot-fab-label">AI</span>
+    </button>
+
+    <div class="chatbot-panel" id="chatbotPanel">
+        <div class="chatbot-header">
+            <div class="chatbot-header-info">
+                <span class="chatbot-avatar">🤖</span>
+                <div>
+                    <div class="chatbot-title">Gemini AI Assistant</div>
+                    <div class="chatbot-status" data-i18n="ask_me">Hỏi tôi về xu hướng công nghệ</div>
+                </div>
+            </div>
+            <button class="chatbot-close" id="chatbotClose">✕</button>
+        </div>
+        <div class="chatbot-messages" id="chatMessages">
+            <div class="chat-msg bot">
+                <div class="chat-msg-avatar">🤖</div>
+                <div class="chat-msg-content">
+                    <p data-i18n="chatbot_welcome">Xin chào! Tôi là trợ lý AI. Hãy hỏi tôi về xu hướng công nghệ trên
+                        GitHub!</p>
+                    <div class="chat-suggestions" id="chatSuggestions">
+                        <button class="chat-suggestion-btn" data-i18n="suggest_trending">Xu hướng nào đang hot
+                            nhất?</button>
+                        <button class="chat-suggestion-btn" data-i18n="suggest_compare">So sánh React vs Vue</button>
+                        <button class="chat-suggestion-btn" data-i18n="suggest_find">Tìm repo về AI/ML</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="chatbot-input">
+            <input type="text" id="chatInput" data-i18n-placeholder="chat_placeholder" placeholder="Nhập câu hỏi..."
+                autocomplete="off">
+            <button class="chat-send-btn" id="chatSend">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="m22 2-7 20-4-9-9-4z" />
+                    <path d="m22 2-11 11" />
+                </svg>
+            </button>
         </div>
     </div>
 
     <!-- Footer -->
     <footer class="footer">
-        <p>GitHub Tech Trends AI System — Được tạo bởi AI 🤖</p>
-        <p class="footer-small">Dữ liệu từ GitHub • Phân tích bằng AI • Cập nhật tự động</p>
+        <p>GitHub Tech Trends AI System — <span data-i18n="created_by">Được tạo bởi AI</span> 🤖</p>
+        <p class="footer-small" data-i18n="footer_info">Dữ liệu từ GitHub • Phân tích bằng AI • Cập nhật tự động</p>
     </footer>
 
     <script src="/static/app.js"></script>
 </body>
+
 </html>

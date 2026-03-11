@@ -24,17 +24,16 @@ MAX_REQUESTS_PER_HOUR = 5000 if GITHUB_TOKEN else 60
 REQUEST_DELAY = 1.0  # giây giữa các request
 
 # === Thu thập dữ liệu ===
-REPOS_PER_SEARCH = 100          # số repo mỗi lần search
-TRENDING_LANGUAGES = [
-    "", "python", "javascript", "typescript", "rust", "go",
-    "java", "c++", "c#", "swift", "kotlin", "dart"
-]
 TRENDING_SINCE = ["daily", "weekly", "monthly"]
 
 # === AI Model ===
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 MIN_CLUSTER_SIZE = 5
 CLUSTERING_MIN_SAMPLES = 3
+
+# === Gemini AI ===
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GEMINI_MODEL = "gemini-2.0-flash"
 
 # === Scheduler ===
 COLLECT_INTERVAL_HOURS = 6      # Thu thập trending mỗi 6 giờ

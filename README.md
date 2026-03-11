@@ -1,6 +1,11 @@
 # GitHub Tech Trends AI System
 
-Hệ thống AI tự động thu thập và phân tích xu hướng công nghệ từ GitHub.
+> 🚀 **Dự án đang trong quá trình phát triển (Active Development)** 
+> Bằng việc ứng dụng thuật toán AI ML (Clustering, EMA Crossover Momentum) và tích hợp Gemini LLM.
+
+![Dashboard Demo](docs/dashboard_demo.webp)
+
+Hệ thống AI tự động thu thập, phân tích NLP và dự báo vòng đời xu hướng công nghệ trên GitHub theo thời gian thực.
 
 ## Tính năng
 

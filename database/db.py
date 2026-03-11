@@ -62,14 +62,15 @@ async def upsert_repositories(repos_data: list[dict]) -> int:
     count = 0
     for repo_data in repos_data:
         try:
-            await upsert_repository(repo_data)
-            count += 1
+            repo = await upsert_repository(repo_data)
+            if repo:
+                count += 1
         except Exception as e:
             print(f"[DB] Lỗi upsert repo {repo_data.get('full_name', '?')}: {e}")
     return count
 
 
-async def get_repositories(limit: int = 100, offset: int = 0, language: str = None):
+async def get_repositories(limit: int = 100, offset: int = 0, language: str | None = None):
     """Lấy danh sách repositories."""
     async with async_session() as session:
         query = select(Repository).order_by(Repository.stars.desc())
@@ -87,6 +88,13 @@ async def get_all_repositories():
             select(Repository).order_by(Repository.collected_at.desc())
         )
         return result.scalars().all()
+
+
+async def get_all_repo_names() -> set[str]:
+    """Lấy tập hợp full_name của toàn bộ repos để check trùng lặp."""
+    async with async_session() as session:
+        result = await session.execute(select(Repository.full_name))
+        return set(result.scalars().all())
 
 
 async def get_repo_count():
@@ -126,8 +134,8 @@ async def upsert_trend(trend_data: dict) -> Optional[TechTrend]:
 
 async def get_trends(
     limit: int = 50,
-    category: str = None,
-    status: str = None,
+    category: str | None = None,
+    status: str | None = None,
     sort_by: str = "trend_score"
 ):
     """Lấy danh sách xu hướng công nghệ."""
@@ -184,7 +192,7 @@ async def add_snapshot(trend_id: int, score: float, repo_count: int, mention_cou
         return snapshot
 
 
-async def get_trend_timeline(tech_name: str = None, days: int = 30):
+async def get_trend_timeline(tech_name: str | None = None, days: int = 30):
     """Lấy dữ liệu timeline cho charts."""
     async with async_session() as session:
         query = (
@@ -204,6 +212,73 @@ async def get_trend_timeline(tech_name: str = None, days: int = 30):
             }
             for row in rows
         ]
+
+
+async def search_suggestions(query: str, limit: int = 8):
+    """Tìm gợi ý autocomplete từ trends và repos."""
+    if not query or len(query) < 2:
+        return []
+
+    async with async_session() as session:
+        pattern = f"%{query}%"
+        suggestions = []
+
+        # Tìm trong tech_trends
+        result = await session.execute(
+            select(TechTrend.technology_name, TechTrend.category, TechTrend.trend_score)
+            .where(TechTrend.technology_name.ilike(pattern))
+            .order_by(TechTrend.trend_score.desc())
+            .limit(limit)
+        )
+        for row in result.all():
+            suggestions.append({
+                "type": "trend",
+                "name": row[0],
+                "category": row[1],
+                "score": round(row[2], 1),
+            })
+
+        # Tìm trong repositories (nếu chưa đủ)
+        remaining = limit - len(suggestions)
+        if remaining > 0:
+            result = await session.execute(
+                select(Repository.full_name, Repository.language, Repository.stars)
+                .where(
+                    (Repository.full_name.ilike(pattern)) |
+                    (Repository.description.ilike(pattern))
+                )
+                .order_by(Repository.stars.desc())
+                .limit(remaining)
+            )
+            for row in result.all():
+                suggestions.append({
+                    "type": "repo",
+                    "name": row[0],
+                    "language": row[1],
+                    "stars": row[2],
+                })
+
+        return suggestions
+
+
+async def search_repositories(query: str, limit: int = 20):
+    """Full-text search trong repositories."""
+    if not query:
+        return []
+
+    async with async_session() as session:
+        pattern = f"%{query}%"
+        result = await session.execute(
+            select(Repository)
+            .where(
+                (Repository.full_name.ilike(pattern)) |
+                (Repository.description.ilike(pattern)) |
+                (Repository.name.ilike(pattern))
+            )
+            .order_by(Repository.stars.desc())
+            .limit(limit)
+        )
+        return result.scalars().all()
 
 
 async def clear_all_data():

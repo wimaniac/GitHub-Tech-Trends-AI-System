@@ -7,7 +7,16 @@ from typing import Optional
 import httpx
 from bs4 import BeautifulSoup
 
-from config import GITHUB_TRENDING_URL, TRENDING_LANGUAGES, TRENDING_SINCE
+import random
+from config import GITHUB_TRENDING_URL, TRENDING_SINCE
+
+# Pool ngôn ngữ đa dạng để chọn ngẫu nhiên mỗi lần scrape trang Trending (chống bias)
+TRENDING_LANGUAGES_POOL = [
+    "python", "javascript", "typescript", "rust", "go",
+    "java", "c++", "c#", "swift", "kotlin", "dart",
+    "php", "ruby", "shell", "c", "html", "css", "vue",
+    "lua", "zig", "elixir", "haskell", "clojure", "solidity"
+]
 
 
 class TrendingScraper:
@@ -148,7 +157,10 @@ class TrendingScraper:
         """Scrape trending cho tất cả ngôn ngữ và khoảng thời gian."""
         all_repos = {}
 
-        for lang in TRENDING_LANGUAGES[:6]:  # Giới hạn để tránh quá nhiều requests
+        # Luôn luôn lấy "Tất cả ngôn ngữ" (key="") và chọn ngẫu nhiên 5 ngôn ngữ khác
+        selected_langs = [""] + random.sample(TRENDING_LANGUAGES_POOL, 5)
+
+        for lang in selected_langs:
             for since in ["daily", "weekly"]:
                 print(f"[Trending] Scraping: lang={lang or 'all'}, since={since}")
                 repos = await self.scrape_trending(language=lang, since=since)

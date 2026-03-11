@@ -34,3 +34,23 @@ Tài liệu này chia nhỏ dự án thành các ticket cụ thể để tiện 
 - [x] **OPT-01**: Viết cronjob / APScheduler để tự động chạy Data Collector sau mỗi 6 tiếng.
 - [x] **OPT-02**: Add caching (in-memory hoặc Redis) cho GET API endpoint.
 - [x] **OPT-03**: Viết Unit Tests coverage > 80%.
+
+## Phase 7: Config & Backend (Gemini & Search AI)
+- [x] Thêm cấu hình `GEMINI_API_KEY`.
+- [x] Thêm các endpoint `/api/chat`, `/api/search/suggestions`, `/api/repos/search`.
+- [x] Mở rộng DB & Backend cho Chatbot và Autocomplete.
+
+## Phase 8: Frontend Redesign
+- [x] Toggle Dark/Light theme, Hỗ trợ đa ngôn ngữ i18n (Tiếng Việt / English).
+- [x] Pagination, Autocomplete Search dropdown kết nối API.
+- [x] Category Grid Cards và Widget Chatbot AI (Gemini).
+
+## Phase 9: Verification & Bug Fixes
+- [x] Kiểm thử toàn bộ API Backend & Frontend UI.
+
+## Phase 10: Advanced Analytics & Robustness
+- [x] **Crawler**: Rate Limiting, Backoff/Retry, Random Jitter.
+- [x] **NLP**: Tích hợp Embedding Similarity để tự rò tìm công nghệ mới.
+- [x] **Scoring**: Composite Trend Score (Velocity, Traction, Frequency, Breadth).
+- [x] **Clustering**: Tech Ecosystems Clustering thay vì Repo Clustering.
+- [x] **Predictor**: Exponential Momentum Forecasting (EMA Crossover).
