@@ -7,6 +7,19 @@
 
 Hệ thống AI tự động thu thập, phân tích NLP và dự báo vòng đời xu hướng công nghệ trên GitHub theo thời gian thực.
 
+## 📸 Giao diện ứng dụng (Screenshots)
+
+Thành phẩm giao diện (Giao diện Sáng/Tối, Dashboard Phân tích Xu hướng, Chatbot AI):
+
+<p align="center">
+  <img src="assets/demo1.png" width="48%" style="border-radius: 8px;">
+  <img src="assets/demo2.png" width="48%" style="border-radius: 8px;">
+</p>
+<p align="center">
+  <img src="assets/demo3.png" width="48%" style="border-radius: 8px;">
+  <img src="assets/demo4.png" width="48%" style="border-radius: 8px;">
+</p>
+
 ## Tính năng
 
 - 🔍 **Thu thập dữ liệu** từ GitHub Trending và Search API
